@@ -30,6 +30,7 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.integration:spring-integration-test")
     testImplementation("org.springframework.kafka:spring-kafka-test")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 }
 
 dependencyManagement {

@@ -1,5 +1,15 @@
 package de.jds.demo
 
-data class RequestDTO(val id: Long)
+class RequestDTO() {
+    var id: Long = 0
+    override fun toString(): String {
+        return "RequestDTO(id=$id)"
+    }
+}
 
-data class ResponseDTO(val id: Long)
+class ResponseDTO() {
+    var id: Long = 0
+    override fun toString(): String {
+        return "ResponseDTO(id=$id)"
+    }
+}
