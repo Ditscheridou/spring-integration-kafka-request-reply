@@ -1,0 +1,84 @@
+version: '3.6'
+
+services:
+  akhq:
+    image: tchiotludo/akhq
+    environment:
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            dev:
+              properties:
+                bootstrap.servers: "kafka:9093"
+          clients-defaults:
+            consumer:
+              properties:
+                default.api.timeout.ms: 15000000
+    ports:
+      - "8081:8080"
+    depends_on:
+      - init-kafka
+    networks:
+      - kafka-net
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper
+    #    volumes:
+    #      - zookeeper-data:/var/lib/zookeeper/data:Z
+    #      - zookeeper-log:/var/lib/zookeeper/log:Z
+    environment:
+      ZOOKEEPER_CLIENT_PORT: '2181'
+      ZOOKEEPER_ADMIN_ENABLE_SERVER: 'false'
+    networks:
+      - kafka-net
+
+  kafka:
+    image: confluentinc/cp-kafka
+    #    volumes:
+    #      - kafka-data:/var/lib/kafka/data:Z
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: '0'
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_NUM_PARTITIONS: '5'
+      KAFKA_COMPRESSION_TYPE: 'gzip'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: '1'
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: '1'
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: '1'
+      KAFKA_ADVERTISED_LISTENERS: LOCALHOST://localhost:9092,KAFKA://kafka:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LOCALHOST:PLAINTEXT,KAFKA:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: LOCALHOST
+      KAFKA_LISTENERS: KAFKA://0.0.0.0:9093,LOCALHOST://0.0.0.0:9092
+      KAFKA_CONFLUENT_SUPPORT_METRICS_ENABLE: 'false'
+      KAFKA_JMX_PORT: '9091'
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_METADATA_MAX_AGE_MS: '500'
+    networks:
+      - kafka-net
+
+  init-kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - kafka
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      "
+      # blocks until kafka is reachable
+      kafka-topics --bootstrap-server kafka:9093 --list
+
+      echo -e 'Creating kafka topics'
+      kafka-topics --bootstrap-server kafka:9093 --create --if-not-exists --topic kafkaRequests --replication-factor 1 --partitions 1
+      kafka-topics --bootstrap-server kafka:9093 --create --if-not-exists --topic kafkaReplies --replication-factor 1 --partitions 1
+
+      echo -e 'Successfully created the following topics:'
+      kafka-topics --bootstrap-server kafka:9093 --list
+      "
+    networks:
+      - kafka-net
+
+networks:
+  kafka-net:
+    driver: bridge
